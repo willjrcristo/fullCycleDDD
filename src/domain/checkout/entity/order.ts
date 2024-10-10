@@ -1,5 +1,6 @@
 import Customer from "../../customer/entity/customer";
 import OrderItem from "./order_item";
+
 export default class Order {
   private _id: string;
   private _customerId: string;
@@ -29,7 +30,12 @@ export default class Order {
   changeCustomer(customer: Customer) {
     this._customerId = customer.id
   }
-
+  
+  addItem(item: OrderItem){
+    this._items.push(item);
+    this.validate();
+  }
+  
   validate(): boolean {
     if (this._id.length === 0) {
       throw new Error("Id is required");
@@ -50,5 +56,14 @@ export default class Order {
 
   total(): number {
     return this._items.reduce((acc, item) => acc + item.total(), 0);
+  }
+
+  toJSON(){
+    return {
+      id: this.id,
+      customer_id: this.customerId,
+      items: this.items.map(item => item.toJSON()),
+      total: this.total()
+    }
   }
 }

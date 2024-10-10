@@ -1,18 +1,20 @@
-import { Sequelize } from "sequelize-typescript";
-import Order from '../../../../domain/checkout/entity/order';
-import OrderItem from "../../../../domain/checkout/entity/order_item";
-import Customer from "../../../../domain/customer/entity/customer";
 import Address from "../../../../domain/customer/value-object/address";
-import Product from "../../../../domain/product/entity/product";
+import Customer from "../../../../domain/customer/entity/customer";
 import CustomerModel from "../../../customer/repository/sequelize/customer.model";
 import CustomerRepository from "../../../customer/repository/sequelize/customer.repository";
-import ProductModel from "../../../product/repository/sequelize/product.model";
-import ProductRepository from "../../../product/repository/sequelize/product.repository";
+import Order from '../../../../domain/checkout/entity/order';
+import OrderItem from "../../../../domain/checkout/entity/order_item";
 import OrderItemModel from "./order-item.model";
 import OrderModel from "./order.model";
 import OrderRepository from "./order.repository";
+import Product from "../../../../domain/product/entity/product";
+import ProductModel from "../../../product/repository/sequelize/product.model";
+import ProductRepository from "../../../product/repository/sequelize/product.repository";
+import { Sequelize } from "sequelize-typescript";
+import { or } from "sequelize";
 
 describe("Order repository test", () => {
+  jest.setTimeout(720000);
   let sequelize: Sequelize;
 
   beforeEach(async () => {
@@ -134,16 +136,64 @@ describe("Order repository test", () => {
 
     order.changeCustomer(customerB);
 
+    const productB = new Product("456", "Product 2", 1.99);
+    await productRepository.create(productB);
+    
+    const orderItemB = new OrderItem(
+      "2",
+      productB.name,
+      productB.price,
+      productB.id,
+      10
+    );
+
+    order.addItem(orderItemB);
+
     await orderRepository.update(order);
 
-    const orderModel2 = await OrderModel.findOne({ where: { id: "123" } });
+    const orderModel2 = await OrderModel.findOne({ 
+      where: { id: "123" }, 
+      include: [{ model: OrderItemModel }] 
+    });
 
-    expect(orderModel2.toJSON()).toStrictEqual({
+    const orderFinal = new Order(
+      orderModel2.id,
+      orderModel2.customer_id,
+      orderModel2.items.map(itemModel => new OrderItem(
+        itemModel.id, 
+        itemModel.name, 
+        itemModel.price, 
+        itemModel.product_id, 
+        itemModel.quantity
+      )),
+    );
+
+    const expected = {
       id: "123",
       customer_id: "999",
-      total: 20
-    });
-  });
+      total: 39.90,
+      items: [
+        {
+          id: "1",
+          name: "Product 1",
+          price: 10,
+          quantity: 2,
+          total: 20,
+        },
+        {
+          id: "2",
+          name: "Product 2",
+          price: 1.99,
+          quantity: 10,
+          total: 19.90
+        }
+      ]
+    };
+
+    expect(orderFinal.toJSON()).toStrictEqual(expected);
+  },
+  // 720000
+);
 
   it("should find a order", async () => {
     const customerRepository = new CustomerRepository();
