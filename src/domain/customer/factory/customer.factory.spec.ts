@@ -1,9 +1,11 @@
-import CustomerFactory from "./customer.factory";
 import Address from "../value-object/address";
+import CustomerFactory from "./customer.factory";
 
 describe("Customer factory unit test", () => {
   it("should create a customer", () => {
-    let customer = CustomerFactory.create("John");
+    const customerFactory = new CustomerFactory();
+
+    let customer = customerFactory.create("John");
 
     expect(customer.id).toBeDefined();
     expect(customer.name).toBe("John");
@@ -11,9 +13,11 @@ describe("Customer factory unit test", () => {
   });
 
   it("should create a customer with an address", () => {
+    const customerFactory = new CustomerFactory();
+
     const address = new Address("Street", 1, "13330-250", "São Paulo");
 
-    let customer = CustomerFactory.createWithAddress("John", address);
+    let customer = customerFactory.createWithAddress("John", address);
 
     expect(customer.id).toBeDefined();
     expect(customer.name).toBe("John");
